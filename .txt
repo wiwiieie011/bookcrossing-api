@@ -1,0 +1,77 @@
+
+POST localhost:8080/users/register
+{
+    "name":"User One",
+    "email":"user1@example.com",
+    "password":"Passw0rd!",
+    "city":"Москва",
+    "address":"ул. Пушкина 1" 
+}
+
+{
+     "name":"User Two",
+     "email":"user2@example.com",
+     "password":"Passw0rd!",
+     "city":"Москва",
+     "address":"ул. Лермонтова 2" 
+}
+
+localhost:8080/genres
+
+user1
+{
+    "name":"Фантастика" 
+}
+
+
+user2
+{
+    "name":"Роман" 
+}
+
+
+POST localhost:8080/books
+
+user1
+{ 
+    "title":"Война и мир",
+    "author":"Лев Толстой",
+    "description":"Роман-эпопея",
+    "ai_summary":"",
+    "genre_ids":[{{genreId2}}] 
+}
+
+user2
+
+{
+
+ "title":"Пикник на обочине",
+ "author":"Стругацкие",
+ "description":"Научная фантастика",
+ "ai_summary":"",
+ "genre_ids":[{{genreId1}}] 
+
+}
+
+GET 
+Search   
+GET localhost:8080/books?city=Москва&status=available&page=1&limit=10&sort_by=created_at&sort_order=desc
+
+exchanges
+POST localhost:8080/exchanges
+
+{ 
+    "initiator_id": user1Id, 
+    "recipient_id": user2Id, 
+    "initiator_book_id": book1Id, 
+    "recipient_book_id": book2Id 
+}
+
+PUT  localhost:8080/exchanges/:id/accept
+PUT  localhost:8080/exchanges/:id/complete
+PUT  localhost:8080/exchanges/:id/cancel
+
+
+
+
+
