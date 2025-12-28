@@ -16,7 +16,8 @@ type UserRepository interface {
 	GetByID(id uint) (*models.User, error)
 	Update(user *models.User) error
 	GetByEmail(email string) (*models.User, error)
-	List() ([]models.User, error)
+	ListUsers(limit int, lastID uint) ([]models.User, error)
+	ListUsers1() ([]models.User, error)
 	Delete(id uint) error
 }
 
@@ -78,14 +79,43 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *userRepository) List() ([]models.User, error) {
-	var users []models.User
-	if err := r.db.Find(&users).Error; err != nil {
-		r.log.Error("ошибка получения списка пользователей")
-		return nil, dto.ErrUserGetFailed
-	}
-	return users, nil
+func (r *userRepository) ListUsers(limit int, lastID uint) ([]models.User, error) {
+    var users []models.User
+
+    q := r.db.
+        Model(&models.User{}).
+        Select("id, name, email").
+        Order("id ASC").
+        Limit(limit)
+
+    if lastID > 0 {
+        q = q.Where("id > ?", lastID)
+    }
+
+    if err := q.Find(&users).Error; err != nil {
+        r.log.Error("ошибка получения пользователей", err)
+        return nil, dto.ErrUserGetFailed
+    }
+
+    return users, nil
 }
+
+func (r *userRepository) ListUsers1() ([]models.User, error) {
+    var users []models.User
+
+    q := r.db.
+        Model(&models.User{}).
+        Select("id, name, email").
+        Order("id ASC")
+
+    if err := q.Find(&users).Error; err != nil {
+        r.log.Error("ошибка получения пользователей", err)
+        return nil, dto.ErrUserGetFailed
+    }
+
+    return users, nil
+}
+
 func (r *userRepository) Delete(id uint) error {
 	if err := r.db.Delete(&models.User{}, id).Error; err != nil {
 		r.log.Error("ошибка удаления профиля")

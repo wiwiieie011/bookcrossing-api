@@ -3,6 +3,7 @@ module github.com/dasler-fw/bookcrossing
 go 1.25.4
 
 require (
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/joho/godotenv v1.5.1

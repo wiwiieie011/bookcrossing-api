@@ -16,11 +16,12 @@ type UserService interface {
 	Login(req dto.LoginRequest) (string, error)
 	GetUserByID(id uint) (*models.User, error)
 	UpdateUser(id uint, req dto.UserUpdateRequest) (*models.User, error)
-	ListUsers() ([]models.User, error)
+	ListUsers(limit int, lastID uint) ([]models.User, uint, error)
 	DeleteUser(id uint) error
 	GetProfile(userID uint) (*dto.UserProfileResponse, error)
 	UpdateProfile(userID uint, req dto.UserUpdateRequest) error
 	GetUserExchanges(userID uint, status string) ([]models.Exchange, error)
+	List()([]models.User,  error)
 }
 
 type userService struct {
@@ -122,14 +123,35 @@ func (s *userService) UpdateUser(id uint, req dto.UserUpdateRequest) (*models.Us
 	}
 	return user, nil
 }
-
-func (s *userService) ListUsers() ([]models.User, error) {
-	users, err := s.userRepo.List()
-	if err != nil {
-		return nil, dto.ErrUserListFailed
+func (s *userService) ListUsers(limit int, lastID uint) ([]models.User, uint, error) {
+	if limit <= 0 || limit > 1500000 {
+		limit = 50
 	}
-	return users, nil
+
+	users, err := s.userRepo.ListUsers(limit, lastID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+nextID := uint(0)
+if len(users) > 0 {
+	nextID = users[len(users)-1].ID // последний ID текущей страницы
 }
+
+	return users, nextID, nil
+}
+
+
+func (s *userService) List()([]models.User,  error){
+	list , err := s.userRepo.ListUsers1()
+	if err !=nil {
+		return nil , err
+	}
+
+	return list, nil
+}
+
+
 
 func (s *userService) DeleteUser(id uint) error {
 	if err := s.userRepo.Delete(id); err != nil {

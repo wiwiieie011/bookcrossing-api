@@ -26,7 +26,8 @@ func (h *UserHandler) RegisterRoutes(r *gin.Engine) {
 		users.GET("/:id",middleware.JWTAuth(), h.GetProfile)
 		users.PATCH("/:id", middleware.JWTAuth(), h.UpdateProfile)
 		users.GET("/:id/exchanges",middleware.JWTAuth(), h.GetUserExchanges)
-
+		users.GET("",h.List)
+		users.GET("/list",h.List1)
 	}
 
 }
@@ -148,3 +149,43 @@ func (h *UserHandler) GetUserExchanges(c *gin.Context) {
 
 	c.JSON(http.StatusOK, exchanges)
 }
+
+func (h *UserHandler) List1(c *gin.Context){
+	list , err := h.userServ.List()
+	if err != nil {
+		c.IndentedJSON(http.StatusHTTPVersionNotSupported, err)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, list)
+}
+
+func (h *UserHandler) List(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+
+	var lastID uint
+	if lastIDStr := c.Query("last_id"); lastIDStr != "" {
+		id, err := strconv.ParseUint(lastIDStr, 10, 64)
+		if err == nil {
+			lastID = uint(id)
+		}
+	}
+
+	users, nextID, err := h.userServ.ListUsers(limit, lastID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "ошибка получения пользователей",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": users,
+		"meta": gin.H{
+			"limit":  limit,
+			"next_id": nextID,
+			"has_next": nextID != 0,
+		},
+	})
+}
+
