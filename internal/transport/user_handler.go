@@ -1,17 +1,23 @@
 package transport
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/dasler-fw/bookcrossing/internal/dto"
 	"github.com/dasler-fw/bookcrossing/internal/middleware"
 	"github.com/dasler-fw/bookcrossing/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 type UserHandler struct {
 	userServ services.UserService
+	Redis    *redis.Client
 }
 
 func NewUserHandler(userServ services.UserService) *UserHandler {
@@ -23,11 +29,13 @@ func (h *UserHandler) RegisterRoutes(r *gin.Engine) {
 	{
 		users.POST("/register", h.Register)
 		users.POST("/login", h.Login)
-		users.GET("/:id",middleware.JWTAuth(), h.GetProfile)
+		users.GET("/:id", middleware.JWTAuth(), h.GetProfile)
 		users.PATCH("/:id", middleware.JWTAuth(), h.UpdateProfile)
-		users.GET("/:id/exchanges",middleware.JWTAuth(), h.GetUserExchanges)
-		users.GET("",h.List)
-		users.GET("/list",h.List1)
+		users.GET("/:id/exchanges", middleware.JWTAuth(), h.GetUserExchanges)
+		// Collection endpoints
+		users.GET("", h.List)       // GET /users
+		users.GET("/", h.List)      // GET /users/ (trailing slash)
+		users.GET("/list", h.List1) // legacy/simple list
 	}
 
 }
@@ -150,8 +158,8 @@ func (h *UserHandler) GetUserExchanges(c *gin.Context) {
 	c.JSON(http.StatusOK, exchanges)
 }
 
-func (h *UserHandler) List1(c *gin.Context){
-	list , err := h.userServ.List()
+func (h *UserHandler) List1(c *gin.Context) {
+	list, err := h.userServ.List()
 	if err != nil {
 		c.IndentedJSON(http.StatusHTTPVersionNotSupported, err)
 		return
@@ -162,30 +170,54 @@ func (h *UserHandler) List1(c *gin.Context){
 
 func (h *UserHandler) List(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-
 	var lastID uint
 	if lastIDStr := c.Query("last_id"); lastIDStr != "" {
-		id, err := strconv.ParseUint(lastIDStr, 10, 64)
-		if err == nil {
-			lastID = uint(id)
+		id, _ := strconv.ParseUint(lastIDStr, 10, 64)
+		lastID = uint(id)
+	}
+
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("users:%d:%d", lastID, limit)
+	nocache := c.Query("nocache") == "1"
+
+	// 1️⃣ Проверяем кэш
+	if !nocache && h.Redis != nil {
+		if cached, err := h.Redis.Get(ctx, cacheKey).Result(); err == nil {
+			c.Data(200, "application/json", []byte(cached))
+			return
 		}
 	}
 
+	// 2️⃣ Если нет в кэше — запрос из Postgres
 	users, nextID, err := h.userServ.ListUsers(limit, lastID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "ошибка получения пользователей",
-		})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := gin.H{
 		"data": users,
 		"meta": gin.H{
-			"limit":  limit,
-			"next_id": nextID,
+			"limit":    limit,
+			"next_id":  nextID,
 			"has_next": nextID != 0,
 		},
-	})
-}
+	}
 
+	// optional debug info
+	if c.Query("debug") == "1" {
+		resp["debug"] = gin.H{
+			"last_id":  lastID,
+			"returned": len(users),
+		}
+	}
+
+	jsonData, _ := json.Marshal(resp)
+
+	// 3️⃣ Сохраняем в Redis на 5 минут (если кэш не отключён)
+	if !nocache && h.Redis != nil {
+		h.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
+	}
+
+	c.Data(200, "application/json", jsonData)
+}

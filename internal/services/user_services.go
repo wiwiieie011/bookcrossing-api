@@ -123,23 +123,25 @@ func (s *userService) UpdateUser(id uint, req dto.UserUpdateRequest) (*models.Us
 	}
 	return user, nil
 }
+
 func (s *userService) ListUsers(limit int, lastID uint) ([]models.User, uint, error) {
-	if limit <= 0 || limit > 1500000 {
-		limit = 50
-	}
+    if limit <= 0 || limit > 1500000 {
+        limit = 50
+    }
 
-	users, err := s.userRepo.ListUsers(limit, lastID)
-	if err != nil {
-		return nil, 0, err
-	}
+    users, err := s.userRepo.ListUsers(limit, lastID)
+    if err != nil {
+        return nil, 0, err
+    }
 
-nextID := uint(0)
-if len(users) > 0 {
-	nextID = users[len(users)-1].ID // последний ID текущей страницы
+    nextID := uint(0)
+    if len(users) > 0 {
+        nextID = users[len(users)-1].ID
+    }
+
+    return users, nextID, nil
 }
 
-	return users, nextID, nil
-}
 
 
 func (s *userService) List()([]models.User,  error){

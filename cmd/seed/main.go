@@ -17,13 +17,17 @@ import (
 )
 
 const (
-	batchSize      = 1000
-	genresCount    = 0
-	usersCount     = 1000000
-	booksCount     = 0
-	reviewsCount   = 0
-	exchangesCount = 0
-	softDeletePct  = 5 // percent
+	batchSize     = 1000
+	softDeletePct = 5 // percent
+)
+
+// Defaults for seeding; can be overridden via env vars SEED_*
+var (
+	genresTotal    = getEnvInt("SEED_GENRES", 0)
+	usersTotal     = getEnvInt("SEED_USERS", 1000000)
+	booksTotal     = getEnvInt("SEED_BOOKS", 0)
+	reviewsTotal   = getEnvInt("SEED_REVIEWS", 0)
+	exchangesTotal = getEnvInt("SEED_EXCHANGES", 0)
 )
 
 func main() {
@@ -53,8 +57,8 @@ func main() {
 	fmt.Printf("Genres:    %d\n", len(genreIDs))
 	fmt.Printf("Users:     %d\n", len(userIDs))
 	fmt.Printf("Books:     %d\n", len(bookIDs))
-	fmt.Printf("Reviews:   %d\n", reviewsCount)
-	fmt.Printf("Exchanges: %d\n", exchangesCount)
+	fmt.Printf("Reviews:   %d\n", reviewsTotal)
+	fmt.Printf("Exchanges: %d\n", exchangesTotal)
 }
 
 func mustConnect() *gorm.DB {
@@ -95,7 +99,7 @@ func truncateAll(db *gorm.DB) {
 }
 
 func seedGenres(db *gorm.DB) []uint {
-	const total = genresCount
+	total := genresTotal
 	ids := make([]uint, 0, total)
 	buf := make([]models.Genre, 0, batchSize)
 
@@ -123,7 +127,7 @@ func seedGenres(db *gorm.DB) []uint {
 }
 
 func seedUsers(db *gorm.DB) []uint {
-	const total = usersCount
+	total := usersTotal
 	ids := make([]uint, 0, total)
 	buf := make([]models.User, 0, batchSize)
 
@@ -154,7 +158,7 @@ func seedUsers(db *gorm.DB) []uint {
 }
 
 func seedBooks(db *gorm.DB, userIDs []uint) ([]uint, []uint) {
-	const total = booksCount
+	total := booksTotal
 	bookIDs := make([]uint, 0, total)
 	bookOwners := make([]uint, 0, total)
 	buf := make([]models.Book, 0, batchSize)
@@ -255,7 +259,7 @@ func flushJoinPairs(db *gorm.DB, insertPrefix string, pairs *[]string) {
 }
 
 func seedReviews(db *gorm.DB, userIDs, bookIDs []uint) {
-	const total = reviewsCount
+	total := reviewsTotal
 	buf := make([]models.Review, 0, batchSize)
 
 	fmt.Printf("Seeding reviews... 0/%d", total)
@@ -302,7 +306,7 @@ func seedReviews(db *gorm.DB, userIDs, bookIDs []uint) {
 }
 
 func seedExchanges(db *gorm.DB, bookIDs, bookOwners []uint) {
-	const total = exchangesCount
+	total := exchangesTotal
 	buf := make([]models.Exchange, 0, batchSize)
 
 	statuses := []string{"pending", "accepted", "completed", "cancelled"}
@@ -378,4 +382,14 @@ func insertAndCollect[T any](db *gorm.DB, batch *[]T, ids *[]uint) {
 		// Fallback: try to scan IDs with RETURNING via LASTVAL is unsafe; do nothing
 	}
 	*batch = (*batch)[:0]
+}
+
+func getEnvInt(name string, def int) int {
+	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+		var n int
+		if _, err := fmt.Sscanf(v, "%d", &n); err == nil && n >= 0 {
+			return n
+		}
+	}
+	return def
 }

@@ -18,7 +18,7 @@ func main() {
 	config.SetEnv(log)
 
 	db := config.Connect(log)
-
+	redes:= config.ConnectRedis()
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Book{},
@@ -54,6 +54,7 @@ func main() {
 		genreService,
 		reviewService,
 		userService,
+		redes,
 	)
 
 	port := os.Getenv("PORT")

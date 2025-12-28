@@ -80,40 +80,38 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 }
 
 func (r *userRepository) ListUsers(limit int, lastID uint) ([]models.User, error) {
-    var users []models.User
+	var users []models.User
 
-    q := r.db.
-        Model(&models.User{}).
-        Select("id, name, email").
-        Order("id ASC").
-        Limit(limit)
+	q := r.db.
+		Table("users"). // явно указываем таблицу
+		Order("id ASC").
+		Limit(limit)
 
-    if lastID > 0 {
-        q = q.Where("id > ?", lastID)
-    }
+	if lastID > 0 {
+		q = q.Where("id > ?", lastID)
+	}
 
-    if err := q.Find(&users).Error; err != nil {
-        r.log.Error("ошибка получения пользователей", err)
-        return nil, dto.ErrUserGetFailed
-    }
+	if err := q.Find(&users).Error; err != nil {
+		r.log.Error("ошибка получения пользователей", "err", err)
+		return nil, err
+	}
 
-    return users, nil
+	return users, nil
 }
 
 func (r *userRepository) ListUsers1() ([]models.User, error) {
-    var users []models.User
+	var users []models.User
 
-    q := r.db.
-        Model(&models.User{}).
-        Select("id, name, email").
-        Order("id ASC")
+	q := r.db.
+		Table("users").
+		Order("id ASC")
 
-    if err := q.Find(&users).Error; err != nil {
-        r.log.Error("ошибка получения пользователей", err)
-        return nil, dto.ErrUserGetFailed
-    }
+	if err := q.Find(&users).Error; err != nil {
+		r.log.Error("ошибка получения пользователей", "err", err)
+		return nil, dto.ErrUserGetFailed
+	}
 
-    return users, nil
+	return users, nil
 }
 
 func (r *userRepository) Delete(id uint) error {
