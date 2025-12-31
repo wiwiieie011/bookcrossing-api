@@ -1,6 +1,9 @@
 package transport
 
 import (
+	// "context"
+	// "encoding/json"
+	// "fmt"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,8 +11,11 @@ import (
 	"strconv"
 	"time"
 
+	// "time"
+
 	"github.com/dasler-fw/bookcrossing/internal/dto"
 	"github.com/dasler-fw/bookcrossing/internal/middleware"
+	"github.com/dasler-fw/bookcrossing/internal/models"
 	"github.com/dasler-fw/bookcrossing/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -34,8 +40,7 @@ func (h *UserHandler) RegisterRoutes(r *gin.Engine) {
 		users.GET("/:id/exchanges", middleware.JWTAuth(), h.GetUserExchanges)
 		// Collection endpoints
 		users.GET("", h.List)       // GET /users
-		users.GET("/", h.List)      // GET /users/ (trailing slash)
-		users.GET("/list", h.List1) // legacy/simple list
+		users.GET("/list", h.ListUsers)       // GET /users
 	}
 
 }
@@ -158,14 +163,35 @@ func (h *UserHandler) GetUserExchanges(c *gin.Context) {
 	c.JSON(http.StatusOK, exchanges)
 }
 
-func (h *UserHandler) List1(c *gin.Context) {
-	list, err := h.userServ.List()
-	if err != nil {
-		c.IndentedJSON(http.StatusHTTPVersionNotSupported, err)
-		return
-	}
+func (h *UserHandler) ListUsers(c *gin.Context) {
+    cacheKey := "users:list"
 
-	c.IndentedJSON(http.StatusOK, list)
+    // 1️⃣ Пробуем получить из Redis
+    cached, err := h.Redis.Get(c, cacheKey).Result()
+    if err == nil {
+        // Декодируем JSON из кэша и возвращаем
+        var list []models.User  // замените User на вашу модель
+        if err := json.Unmarshal([]byte(cached), &list); err == nil {
+            c.IndentedJSON(http.StatusOK, list)
+            return
+        }
+        // Если unmarshal не удался, идем дальше и обновляем кэш
+    }
+
+    // 2️⃣ Получаем из сервиса
+    list, err := h.userServ.List()
+    if err != nil {
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // 3️⃣ Сохраняем результат в Redis (JSON)
+    data, err := json.Marshal(list)
+    if err == nil {
+        h.Redis.Set(c, cacheKey, data, 5*time.Minute) // кэш на 5 минут
+    }
+
+    c.IndentedJSON(http.StatusOK, list)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -202,14 +228,6 @@ func (h *UserHandler) List(c *gin.Context) {
 			"next_id":  nextID,
 			"has_next": nextID != 0,
 		},
-	}
-
-	// optional debug info
-	if c.Query("debug") == "1" {
-		resp["debug"] = gin.H{
-			"last_id":  lastID,
-			"returned": len(users),
-		}
 	}
 
 	jsonData, _ := json.Marshal(resp)

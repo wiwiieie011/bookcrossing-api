@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -41,14 +43,15 @@ func (r *bookRepository) Create(req *models.Book) error {
 
 	return r.db.Create(req).Error
 }
-
 func (r *bookRepository) GetByID(id uint) (*models.Book, error) {
 	var book models.Book
-	if err := r.db.Preload("Genres").Preload("User").First(&book, id).Error; err != nil {
-		r.log.Error("error in GetByID book_repository.go", "id", id, "err", err)
-		return nil, dto.ErrBookGetFailed
+	err := r.db.Preload("User").Preload("Genres").First(&book, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, dto.ErrorBookNotFound
+		}
+		return nil, fmt.Errorf("error getting book from db: %w", err)
 	}
-
 	return &book, nil
 }
 

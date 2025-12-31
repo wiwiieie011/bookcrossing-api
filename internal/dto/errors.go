@@ -8,6 +8,7 @@ var (
 	ErrBookGetFailed    = errors.New("error getting book from db")
 	ErrBookUpdateFailed = errors.New("error updating book in db")
 	ErrBookDeleteFailed = errors.New("error deleting book in db")
+	ErrorBookNotFound = errors.New("err not found")
 
 	// Exchange repository errors
 	ErrExchangeCreateFailed   = errors.New("error create exchange in db")

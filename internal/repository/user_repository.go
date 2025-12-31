@@ -53,7 +53,6 @@ func (r *userRepository) GetByID(id uint) (*models.User, error) {
 		return nil, dto.ErrUserGetFailed
 	}
 	return &user, nil
-
 }
 
 func (r *userRepository) Update(user *models.User) error {

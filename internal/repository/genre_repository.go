@@ -40,17 +40,16 @@ func (r *genreRepository) Create(req *models.Genre) error {
 	return r.db.Create(req).Error
 }
 
+
 func (r *genreRepository) GetByID(id uint) (*models.Genre, error) {
 	var genre models.Genre
-
-	if err := r.db.First(&genre, id).Error; err != nil {
+	err := r.db.First(&genre, id).Error
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, dto.ErrNotFound
+			return nil, dto.ErrBookGetFailed
 		}
-		r.log.Error("error in GetByID genre", "id", id, "err", err)
-		return nil, err
+		return nil, dto.ErrAISummaryFailed
 	}
-
 	return &genre, nil
 }
 
@@ -90,3 +89,4 @@ func (r *genreRepository) Delete(id uint) error {
 	}
 	return nil
 }
+
