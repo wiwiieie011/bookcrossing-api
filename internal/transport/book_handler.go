@@ -27,7 +27,6 @@ func (h *BookHandler) RegisterRoutes(r *gin.Engine) {
 		books.POST("", middleware.JWTAuth(), h.CreateBook)
 		books.GET("", h.Search)
 		books.GET("/available", h.GetAvailable)
-		books.GET("/list", h.GetBookList)
 		books.GET("/:id", h.GetBookByID)
 		books.PATCH("/:id", middleware.JWTAuth(), h.UpdateBook)
 		books.DELETE("/:id", middleware.JWTAuth(), h.DeleteBook)
@@ -67,16 +66,6 @@ func (h *BookHandler) GetBookByID(ctx *gin.Context) {
 	}
 
 	ctx.IndentedJSON(http.StatusOK, book)
-}
-
-func (h *BookHandler) GetBookList(ctx *gin.Context) {
-	list, err := h.service.GetList()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get books"})
-		return
-	}
-
-	ctx.IndentedJSON(http.StatusOK, list)
 }
 
 func (h *BookHandler) UpdateBook(ctx *gin.Context) {

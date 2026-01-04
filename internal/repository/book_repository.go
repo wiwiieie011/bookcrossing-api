@@ -13,7 +13,6 @@ import (
 
 type BookRepository interface {
 	Create(req *models.Book) error
-	GetList() ([]models.Book, error)
 	GetByID(id uint) (*models.Book, error)
 	Update(book *models.Book) error
 	Delete(id uint) error
@@ -43,6 +42,8 @@ func (r *bookRepository) Create(req *models.Book) error {
 
 	return r.db.Create(req).Error
 }
+
+
 func (r *bookRepository) GetByID(id uint) (*models.Book, error) {
 	var book models.Book
 	err := r.db.Preload("User").Preload("Genres").First(&book, id).Error
@@ -181,6 +182,7 @@ func (r *bookRepository) AttachGenres(bookID uint, genreIDs []uint) error {
 
 	return nil
 }
+
 
 func (r *bookRepository) GetByUserID(userID uint, status string) ([]models.Book, error) {
 	var books []models.Book

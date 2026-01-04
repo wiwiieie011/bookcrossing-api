@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"log/slog"
 
 	"github.com/dasler-fw/bookcrossing/internal/dto"
@@ -19,9 +20,7 @@ type UserService interface {
 	ListUsers(limit int, lastID uint) ([]models.User, uint, error)
 	DeleteUser(id uint) error
 	GetProfile(userID uint) (*dto.UserProfileResponse, error)
-	UpdateProfile(userID uint, req dto.UserUpdateRequest) error
 	GetUserExchanges(userID uint, status string) ([]models.Exchange, error)
-	List()([]models.User,  error)
 }
 
 type userService struct {
@@ -143,23 +142,13 @@ func (s *userService) ListUsers(limit int, lastID uint) ([]models.User, uint, er
 }
 
 
-
-func (s *userService) List()([]models.User,  error){
-	list , err := s.userRepo.ListUsers1()
-	if err !=nil {
-		return nil , err
-	}
-
-	return list, nil
-}
-
-
-
 func (s *userService) DeleteUser(id uint) error {
-	if err := s.userRepo.Delete(id); err != nil {
-		return dto.ErrUserDeleteFailed
-	}
-	return nil
+    user, err := s.userRepo.GetByID(id)
+    if err != nil {
+        return err
+    }
+
+    return s.userRepo.Delete(user.ID) // передаём объект User
 }
 
 func (s *userService) GetProfile(userID uint) (*dto.UserProfileResponse, error) {
@@ -188,40 +177,12 @@ func (s *userService) GetProfile(userID uint) (*dto.UserProfileResponse, error) 
 	}, nil
 }
 
-func (s *userService) UpdateProfile(userID uint, req dto.UserUpdateRequest) error {
-	user, err := s.userRepo.GetByID(userID)
-	if err != nil {
-		return repository.ErrUserNotFound
-	}
-
-	if req.Name != nil {
-		user.Name = *req.Name
-	}
-	if req.City != nil {
-		user.City = *req.City
-	}
-	if req.Address != nil {
-		user.Address = *req.Address
-	}
-	if err := s.userRepo.Update(user); err != nil {
-		return dto.ErrUserProfileUpdateFailed
-	}
-	return nil
-}
 
 func (s *userService) GetUserExchanges(userID uint, status string) ([]models.Exchange, error) {
-	var exchanges []models.Exchange
-
-	q := s.db.Model(&models.Exchange{}).
-		Where("initiator_id = ? OR recipient_id = ?", userID, userID)
-
-	if status != "" {
-		q = q.Where("status = ?", status)
+	list, err := s.userRepo.GetUserExchanges(userID, status)
+	if err != nil{
+		return nil, errors.New("not founds trade history")
 	}
 
-	if err := q.Order("created_at desc").Find(&exchanges).Error; err != nil {
-		return nil, dto.ErrUserExchangesFailed
-	}
-
-	return exchanges, nil
+	return  list, err
 }

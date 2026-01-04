@@ -18,7 +18,6 @@ import (
 type BookService interface {
 	CreateBook(userID uint, ras dto.CreateBookRequest) (*models.Book, error)
 	GetByID(id uint) (*models.Book, error)
-	GetList() ([]models.Book, error)
 	Update(bookID uint, userID uint, req dto.UpdateBookRequest) (*models.Book, error)
 	Delete(bookID uint, userID uint) error
 	SearchBooks(query dto.BookListQuery) ([]models.Book, int64, error)
@@ -82,13 +81,6 @@ func (s *bookService) GetByID(id uint) (*models.Book, error) {
 	return book, nil
 }
 
-func (s *bookService) GetList() ([]models.Book, error) {
-	list, err := s.bookRepo.GetList()
-	if err != nil {
-		return nil, err
-	}
-	return list, nil
-}
 
 func (s *bookService) Update(bookID uint, userID uint, req dto.UpdateBookRequest) (*models.Book, error) {
 	book, err := s.bookRepo.GetByID(bookID)

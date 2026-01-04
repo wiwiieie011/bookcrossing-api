@@ -17,8 +17,8 @@ type UserRepository interface {
 	Update(user *models.User) error
 	GetByEmail(email string) (*models.User, error)
 	ListUsers(limit int, lastID uint) ([]models.User, error)
-	ListUsers1() ([]models.User, error)
 	Delete(id uint) error
+	GetUserExchanges(userID uint, status string) ([]models.Exchange, error)
 }
 
 type userRepository struct {
@@ -98,19 +98,21 @@ func (r *userRepository) ListUsers(limit int, lastID uint) ([]models.User, error
 	return users, nil
 }
 
-func (r *userRepository) ListUsers1() ([]models.User, error) {
-	var users []models.User
+func (s *userRepository) GetUserExchanges(userID uint, status string) ([]models.Exchange, error) {
+	var exchanges []models.Exchange
 
-	q := r.db.
-		Table("users").
-		Order("id ASC")
+	q := s.db.Model(&models.Exchange{}).
+		Where("initiator_id = ? OR recipient_id = ?", userID, userID)
 
-	if err := q.Find(&users).Error; err != nil {
-		r.log.Error("ошибка получения пользователей", "err", err)
-		return nil, dto.ErrUserGetFailed
+	if status != "" {
+		q = q.Where("status = ?", status)
 	}
 
-	return users, nil
+	if err := q.Order("created_at desc").Find(&exchanges).Error; err != nil {
+		return nil, dto.ErrUserExchangesFailed
+	}
+
+	return exchanges, nil
 }
 
 func (r *userRepository) Delete(id uint) error {

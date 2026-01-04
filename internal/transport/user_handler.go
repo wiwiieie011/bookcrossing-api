@@ -15,7 +15,6 @@ import (
 
 	"github.com/dasler-fw/bookcrossing/internal/dto"
 	"github.com/dasler-fw/bookcrossing/internal/middleware"
-	"github.com/dasler-fw/bookcrossing/internal/models"
 	"github.com/dasler-fw/bookcrossing/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -40,7 +39,7 @@ func (h *UserHandler) RegisterRoutes(r *gin.Engine) {
 		users.GET("/:id/exchanges", middleware.JWTAuth(), h.GetUserExchanges)
 		// Collection endpoints
 		users.GET("", h.List)       // GET /users
-		users.GET("/list", h.ListUsers)       // GET /users
+	
 	}
 
 }
@@ -132,16 +131,15 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	if err := h.userServ.UpdateProfile(uint(id), req); err != nil {
+	 user1,  err := h.userServ.UpdateUser(uint(id), req) 
+	 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "не удалось обновить профиль пользователя",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "профиль пользователя успешно обновлён",
-	})
+	c.JSON(http.StatusOK, user1)
 
 }
 
@@ -161,37 +159,6 @@ func (h *UserHandler) GetUserExchanges(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, exchanges)
-}
-
-func (h *UserHandler) ListUsers(c *gin.Context) {
-    cacheKey := "users:list"
-
-    // 1️⃣ Пробуем получить из Redis
-    cached, err := h.Redis.Get(c, cacheKey).Result()
-    if err == nil {
-        // Декодируем JSON из кэша и возвращаем
-        var list []models.User  // замените User на вашу модель
-        if err := json.Unmarshal([]byte(cached), &list); err == nil {
-            c.IndentedJSON(http.StatusOK, list)
-            return
-        }
-        // Если unmarshal не удался, идем дальше и обновляем кэш
-    }
-
-    // 2️⃣ Получаем из сервиса
-    list, err := h.userServ.List()
-    if err != nil {
-        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-
-    // 3️⃣ Сохраняем результат в Redis (JSON)
-    data, err := json.Marshal(list)
-    if err == nil {
-        h.Redis.Set(c, cacheKey, data, 5*time.Minute) // кэш на 5 минут
-    }
-
-    c.IndentedJSON(http.StatusOK, list)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
