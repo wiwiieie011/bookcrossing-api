@@ -10,7 +10,7 @@ import (
 )
 
 type ReviewService interface {
-	Create(authorID uint, req dto.CreateReviewRequest) error
+	Create(authorID uint, req dto.CreateReviewRequest) (*models.Review, error)
 	GetByUserID(userID uint) ([]models.Review, error)
 	GetByBookID(bookID uint) ([]models.Review, error)
 	Delete(reviewID uint, authorID uint) error
@@ -24,34 +24,39 @@ func NewReviewService(repo repository.ReviewRepository) ReviewService {
 	return &reviewService{repo: repo}
 }
 
-func (s *reviewService) Create(authorID uint, req dto.CreateReviewRequest) error {
+func (s *reviewService) Create(authorID uint, req dto.CreateReviewRequest) (*models.Review, error) {
 	trimmedText := strings.TrimSpace(req.Text)
 
 	length := len([]rune(trimmedText))
 	if length < 10 || length > 150 {
-		return dto.ErrReviewTextLength
+		return nil, dto.ErrReviewTextLength
 	}
 
 	if strings.TrimSpace(req.Text) == "" {
-		return errors.New("review text is request")
+		return nil,errors.New("review text is request")
 	}
 
 	if req.Rating < 1 || req.Rating > 5 {
-		return dto.ErrInvalidRating
+		return nil, dto.ErrInvalidRating
 	}
 
 	if req.TargetUserID == authorID {
-		return dto.ErrSelfReviewForbidden
+		return nil,dto.ErrSelfReviewForbidden
 	}
 
-	review := models.Review{
+	review := &models.Review{
 		AuthorID:     authorID,
 		TargetUserID: req.TargetUserID,
 		TargetBookID: req.TargetBookID,
 		Text:         req.Text,
 		Rating:       req.Rating,
 	}
-	return s.repo.Create(&review)
+
+	if err:= s.repo.Create(review); err!= nil {
+		return  nil, err
+	}
+
+	return  review, nil
 }
 
 func (s *reviewService) GetByUserID(userID uint) ([]models.Review, error) {

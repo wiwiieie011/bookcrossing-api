@@ -44,16 +44,13 @@ func (h *ReviewHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Create(authorID.(uint), req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	rev, err := h.service.Create(authorID.(uint), req); 
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "review created",
-	})
+	c.JSON(http.StatusCreated, rev)
 }
 
 func (h *ReviewHandler) GetByUser(c *gin.Context) {

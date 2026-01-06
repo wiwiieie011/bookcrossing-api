@@ -45,7 +45,6 @@ func (m *UserRepositoryMock) Delete(id uint) error {
 	return args.Error(0)
 }
 
-
 func (m *UserRepositoryMock) GetUserExchanges(userID uint, status string) ([]models.Exchange, error) {
 	args := m.Called(userID, status)
 
@@ -55,8 +54,3 @@ func (m *UserRepositoryMock) GetUserExchanges(userID uint, status string) ([]mod
 
 	return args.Get(0).([]models.Exchange), args.Error(1)
 }
-
-
-
-
-

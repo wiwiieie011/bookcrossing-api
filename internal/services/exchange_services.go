@@ -180,6 +180,7 @@ func (s *exchangeService) CheckRecipientOwnsBook(recipientID uint, recipientBook
 
 	return nil
 }
+
 func (s *exchangeService) CheckIsTheSameUser(initiatorID uint, recipientID uint) error {
 	if initiatorID == recipientID {
 		s.log.Error("error in CreateExchange function exchange_services.go", "error", errors.New("initiator and recipient book cannot be the same user"))
