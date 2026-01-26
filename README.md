@@ -9,7 +9,6 @@
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)
 
 Серверное REST API для обмена книгами: пользователи публикуют книги, инициируют обмены, пишут отзывы, авторизуются по JWT. Кэширование — Redis, БД — PostgreSQL, веб‑фреймворк — Gin.
-Демо: [ссылка на демо] (если есть)
 
 ## Getting Started
 
