@@ -1,5 +1,3 @@
-![Banner](https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1950&auto=format&fit=crop)
-
 # Bookcrossing API ✨
 
 ![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go) 
