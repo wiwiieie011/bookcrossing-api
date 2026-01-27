@@ -17,24 +17,6 @@ Prerequisites:
 - PostgreSQL 16 и Redis 7 (локально или через Docker)
 - Make (опционально), Air для hot‑reload (опционально)
 
-Installation:
-
-1. Клонируйте репозиторий и перейдите в папку проекта
-2. Создайте .env с переменными окружения (пример ниже)
-
-```env
-PORT=1010
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=bookcrossing
-DB_PORT=5432
-DB_SSLMODE=disable
-REDIS_HOST=localhost
-REDIS_PORT=6379
-SUPER_SECRET_KEY=your-secret
-```
-
 Running:
 
 - Через Docker
